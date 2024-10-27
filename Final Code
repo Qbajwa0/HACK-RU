@@ -2,7 +2,6 @@ import pandas as pd
 import folium
 from folium import plugins
 
-
 class GTFSPathwayMapGenerator:
     def __init__(self):
         # Initialize empty DataFrames for stops and pathways
@@ -13,12 +12,10 @@ class GTFSPathwayMapGenerator:
             "reversed_signposted_as", "description", "max_slope"
         ])
 
-
     def add_stop(self, stop_id, stop_name, x, y):
         """Adds a stop to the GTFS stops DataFrame with coordinates in feet."""
         stop_data = {"stop_id": stop_id, "stop_name": stop_name, "stop_x": x, "stop_y": y}
         self.stops_df = pd.concat([self.stops_df, pd.DataFrame([stop_data])], ignore_index=True)
-
 
     def add_pathway(self, pathway_id, from_stop_id, to_stop_id, pathway_type, is_bidirectional,
                     length=None, stair_count=None, incline=None, width=None,
@@ -36,7 +33,7 @@ class GTFSPathwayMapGenerator:
         }
         pathway_type_text = pathway_type_map.get(pathway_type, "Unknown")
         bidirectional_text = "Yes" if is_bidirectional == 1 else "No"
-       
+        
         pathway_data = {
             "pathway_id": pathway_id,
             "from_stop_id": from_stop_id,
@@ -54,12 +51,10 @@ class GTFSPathwayMapGenerator:
         }
         self.pathways_df = pd.concat([self.pathways_df, pd.DataFrame([pathway_data])], ignore_index=True)
 
-
     def generate_map(self):
         """Generates an interactive map with stops and pathways visualized."""
         # Initialize the map centered around Newark Penn Station's approximate location
         m = folium.Map(location=[40.735657, -74.172366], zoom_start=20)
-
 
         # Add markers for each stop
         for _, row in self.stops_df.iterrows():
@@ -69,18 +64,15 @@ class GTFSPathwayMapGenerator:
                 tooltip=row["stop_name"]
             ).add_to(m)
 
-
         # Checkbox layers for pathway visuals
         pathway_layers = {}
         for pathway_type in self.pathways_df["pathway_type"].unique():
             pathway_layers[pathway_type] = folium.FeatureGroup(name=pathway_type, show=True)
 
-
         # Add pathways and visuals
         for _, row in self.pathways_df.iterrows():
             from_stop = self.stops_df[self.stops_df["stop_id"] == row["from_stop_id"]].iloc[0]
             to_stop = self.stops_df[self.stops_df["stop_id"] == row["to_stop_id"]].iloc[0]
-
 
             # Calculate approximate walking time based on length
             time_estimate = (row["length (ft)"] / 3.3) / 3  # Convert feet to minutes at avg walking speed
@@ -94,7 +86,6 @@ class GTFSPathwayMapGenerator:
                 f"<b>Approx. Time:</b> {time_estimate:.1f} min"
             )
 
-
             folium.PolyLine(
                 locations=[
                     [40.735657 + from_stop["stop_x"] / 100000, -74.172366 + from_stop["stop_y"] / 100000],
@@ -105,29 +96,23 @@ class GTFSPathwayMapGenerator:
                 tooltip=tooltip_text
             ).add_to(pathway_layers[row["pathway_type"]])
 
-
         # Add each pathway layer to the map
         for layer in pathway_layers.values():
             layer.add_to(m)
 
-
         # Add layer control to toggle pathway types
         folium.LayerControl().add_to(m)
 
-
         # Add minimap plugin
         plugins.MiniMap(toggle_display=True).add_to(m)
-
 
         # Save and display map
         map_path = "gtfs_map.html"
         m.save(map_path)
         print(f"Map saved to {map_path}")
 
-
 # Example Usage
 gtfs = GTFSPathwayMapGenerator()
-
 
 # Add stops (example locations in feet)
 gtfs.add_stop("floor_1", "Floor 1", 200, 300)
@@ -136,12 +121,10 @@ gtfs.add_stop("track_1", "Track 1", 180, 310)
 gtfs.add_stop("track_2", "Track 2", 160, 290)
 gtfs.add_stop("concourse", "Concourse", 250, 330)
 
-
 # Add pathways
 gtfs.add_pathway("elevator_1", "floor_1", "floor_2", 4, 1, 10, description="Elevator from Floor 1 to Floor 2", max_slope=5)
 gtfs.add_pathway("stairway_1_to_2", "track_1", "track_2", 2, 1, 10, stair_count=20, description="Stairs from Track 1 to Track 2", max_slope=30)
 gtfs.add_pathway("walkway_concourse", "concourse", "track_1", 1, 1, 15, description="Walkway from Concourse to Track 1", max_slope=0)
-
 
 # Generate map
 gtfs.generate_map()
